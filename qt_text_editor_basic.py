@@ -63,7 +63,7 @@ class MainWindow(QMainWindow):
 
     def open_file(self):
         fname = QFileDialog.getOpenFileName(self, 'Open file', 
-        '/home/josephm/',"All files (*.*)")
+        '/home/',"All files (*.*)")
 
         if fname[0] == '':
             return
@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
 
     def save_as(self):
         new_name = QFileDialog.getSaveFileName(self, 'Save file as',
-        '/home/josephm/','All files (*.*)')
+        '/home/','All files (*.*)')
         
         if new_name[0] == '':
             return
