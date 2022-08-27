@@ -45,9 +45,7 @@ class MainWindow(QMainWindow):
         self.font_size = 11
         self.mfont.setPointSize(self.font_size)
         self.text.setFont(self.mfont)
-
-        self.file_button = QPushButton("Open File")
-        self.file_button.clicked.connect(self.open_file)
+        
         self.save_button = QPushButton("Save File")
         self.save_button.clicked.connect(self.save_file)
         self.run_button = QPushButton("Run File")
