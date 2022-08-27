@@ -45,7 +45,7 @@ class MainWindow(QMainWindow):
         self.font_size = 11
         self.mfont.setPointSize(self.font_size)
         self.text.setFont(self.mfont)
-        
+
         self.save_button = QPushButton("Save File")
         self.save_button.clicked.connect(self.save_file)
         self.run_button = QPushButton("Run File")
@@ -54,6 +54,14 @@ class MainWindow(QMainWindow):
         master_layout = QVBoxLayout()
 
         self.nav_list = QTreeView()
+
+        self.model = QFileSystemModel()
+        self.model.setRootPath('/home/josephm/Desktop/PyQt/directory')
+       
+        self.nav_list.setModel(self.model)
+        
+        self.nav_list.setRootIndex(self.model.index('/home/josephm/Desktop/PyQt/directory'))
+        self.nav_list.setRootIndex(self.model.index('/home/josephm/Desktop/PyQt/directory'))
         
         self.nav_list.clicked.connect(self.nav_item_change)
 
@@ -67,7 +75,6 @@ class MainWindow(QMainWindow):
         master_layout.addWidget(text_container)
         
         button_layout = QHBoxLayout()
-       # button_layout.addWidget(self.file_button)
         button_layout.addWidget(self.save_button)
         button_layout.addWidget(self.run_button)
         
@@ -80,16 +87,17 @@ class MainWindow(QMainWindow):
         container.setLayout(master_layout)
 
         self.setCentralWidget(container)
+        self.show()
 
     def open_folder(self):
-        folder = QFileDialog.getExistingDirectoryUrl(self, "Open a Folder")
-        folder_name = folder.path()
-    
-        self.model = QFileSystemModel()
-        self.model.setRootPath(folder_name)
         
-        self.nav_list.setModel(self.model)
-        self.nav_list.setRootIndex(self.model.index(folder_name))
+        dest = QFileDialog.getExistingDirectoryUrl(self,'Open Folder')
+        src = f'/home/josephm/Desktop/PyQt/directory/{dest.fileName()}'
+
+        if dest.path() == '':
+            pass
+
+        os.symlink(dest.path(), src)
 
     def save_file(self):
         if self.file_name == '':
@@ -134,7 +142,7 @@ class MainWindow(QMainWindow):
     def nav_item_change(self):
         try:
             self.file_name = self.model.filePath(self.nav_list.selectedIndexes()[0])
-            print(self.file_name)
+            self.file_label.setText(f'File path: {self.file_name}')
 
             with open(self.file_name, 'r') as file:
                 self.text.setText(file.read())
@@ -162,5 +170,4 @@ if __name__ == '__main__':
         background-color: "grey";
     }
 """)
-    window.show()
     app.exec()
