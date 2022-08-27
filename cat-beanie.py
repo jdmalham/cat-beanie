@@ -55,8 +55,9 @@ class MainWindow(QMainWindow):
         
         master_layout = QVBoxLayout()
 
-        self.nav_list = QTreeWidget()
-        self.nav_list.currentItemChanged.connect(self.nav_item_change)
+        self.nav_list = QTreeView()
+        
+        self.nav_list.clicked.connect(self.nav_item_change)
 
         self.text_layout = QHBoxLayout()
         self.text_layout.addWidget(self.nav_list, stretch = 1)
@@ -68,7 +69,7 @@ class MainWindow(QMainWindow):
         master_layout.addWidget(text_container)
         
         button_layout = QHBoxLayout()
-        button_layout.addWidget(self.file_button)
+       # button_layout.addWidget(self.file_button)
         button_layout.addWidget(self.save_button)
         button_layout.addWidget(self.run_button)
         
@@ -82,37 +83,15 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(container)
 
-    def open_file(self):
-        fname = QFileDialog.getOpenFileName(self, 'Open file', 
-        '/home/josephm/',"All files (*.*)")
-
-        if fname[0] == '':
-            return
-
-        self.file_name = fname[0]
-        self.file_label.setText(f'File path: {self.file_name}')
-        
-        with open(self.file_name, 'r') as file:
-            self.text.setText(file.read())
-    
     def open_folder(self):
         folder = QFileDialog.getExistingDirectoryUrl(self, "Open a Folder")
         folder_name = folder.path()
     
-        big_child = QTreeWidgetItem() 
-    
-        sublist = [os.path.join(folder_name,file) for file in os.listdir(folder_name)]
-        main_list = os.listdir(folder_name)
+        self.model = QFileSystemModel()
+        self.model.setRootPath(folder_name)
         
-        for item in main_list:
-            child = QTreeWidgetItem()
-            
-            child.setText(0, item)
-            child.setData(0,0x0100,sublist[main_list.index(item)])
-            
-            big_child.addChild(child)
-        
-        self.nav_list.addTopLevelItem(big_child)
+        self.nav_list.setModel(self.model)
+        self.nav_list.setRootIndex(self.model.index(folder_name))
 
     def save_file(self):
         if self.file_name == '':
@@ -154,11 +133,16 @@ class MainWindow(QMainWindow):
             self.mfont.setPointSize(point-1)
             self.text.setFont(self.mfont)
 
-    def nav_item_change(self, i):
-        self.file_name = i.data(0,0x0100)
+    def nav_item_change(self):
+        try:
+            self.file_name = self.model.filePath(self.nav_list.selectedIndexes()[0])
+            print(self.file_name)
 
-        with open(self.file_name,'r') as file:
-            self.text.setText(file.read())
+            with open(self.file_name, 'r') as file:
+                self.text.setText(file.read())
+        except IsADirectoryError or ValueError:
+            pass
+
 
 if __name__ == '__main__':
     app =  QApplication(sys.argv)
@@ -176,7 +160,7 @@ if __name__ == '__main__':
         background-color: "navy";
         color: "white";
     }
-    QTreeWidget {
+    QTreeView {
         background-color: "grey";
     }
 """)
