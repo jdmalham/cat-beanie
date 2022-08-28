@@ -9,6 +9,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle('Cat Beanie')
 
+        self.dir_path = '/home/josephm/Desktop/PyQt/directory'
+
         self.file_name = ''
         
         self.toolbar = QToolBar(movable = False)
@@ -56,12 +58,12 @@ class MainWindow(QMainWindow):
         self.nav_list = QTreeView()
 
         self.model = QFileSystemModel()
-        self.model.setRootPath('/home/josephm/Desktop/PyQt/directory')
+        self.model.setRootPath(self.dir_path)
        
         self.nav_list.setModel(self.model)
         
-        self.nav_list.setRootIndex(self.model.index('/home/josephm/Desktop/PyQt/directory'))
-        self.nav_list.setRootIndex(self.model.index('/home/josephm/Desktop/PyQt/directory'))
+        self.nav_list.setRootIndex(self.model.index(self.dir_path))
+        self.nav_list.setRootIndex(self.model.index(self.dir_path))
         
         self.nav_list.clicked.connect(self.nav_item_change)
 
@@ -146,7 +148,8 @@ class MainWindow(QMainWindow):
 
             with open(self.file_name, 'r') as file:
                 self.text.setText(file.read())
-        except IsADirectoryError or ValueError:
+        except UnicodeDecodeError or IsADirectoryError or ValueError:
+            self.text.setText('Error opening file')
             pass
 
 
