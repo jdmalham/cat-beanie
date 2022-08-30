@@ -54,6 +54,7 @@ class MainWindow(QMainWindow):
 
         self.terminal_output = QTextEdit()
         self.terminal_output.setProperty("class","output")
+        self.terminal_output.setText('This is the terminal output')
 
         self.output_layout = QVBoxLayout()
         self.output_layout.addWidget(self.text,stretch=3)
