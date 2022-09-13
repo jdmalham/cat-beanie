@@ -5,12 +5,21 @@ import sys
 import os
 import subprocess
 
+"""class FileView(QTreeView):
+    def __init__(self):
+        super().__init__()
+
+    def mousePressEvent(self, QMouseEvent):
+        if QMouseEvent.button() == Qt.MouseButton.LeftButton:
+            self.button = 'LEFT'
+        if QMouseEvent.button() == Qt.MouseButton.RightButton:
+            self.button = 'RIGHT'"""
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('Cat Beanie')
-
-        self.dir_path = '/home/josephm/Desktop/PyQt/directory'
+        self.dir_path = os.path.dirname(os.path.abspath(__file__)) + '/directory'
         self.file_name = ''
         
         self.toolbar = QToolBar(movable = False)
@@ -35,7 +44,6 @@ class MainWindow(QMainWindow):
 
         self.save_shortcut = QShortcut(QKeySequence('Ctrl+S'),self)
         self.save_shortcut.activated.connect(self.save_file)
-
         self.folder_shortcut = QShortcut(QKeySequence('Ctrl+Shift+F'),self)
         self.folder_shortcut.activated.connect(self.open_folder)
         
@@ -48,13 +56,18 @@ class MainWindow(QMainWindow):
        
         self.nav_list.setModel(self.model)
         self.nav_list.setRootIndex(self.model.index(self.dir_path))
-        self.nav_list.setRootIndex(self.model.index(self.dir_path))
-        
+        self.nav_list.setRootIndex(self.model.index(self.dir_path))      
         self.nav_list.clicked.connect(self.nav_item_change)
 
+        os.chdir(os.path.dirname(__file__))
+        self.current_directory = os.getcwd()
+        
+        self.terminal_directory = f"[{self.current_directory}]"
+        self.terminal_text = self.terminal_directory
         self.terminal_output = QTextEdit()
+        self.terminal_output.setText(self.terminal_text)
         self.terminal_output.setProperty("class","output")
-        self.terminal_output.setText('This is the terminal output')
+        self.terminal_output.setReadOnly(True)
 
         self.output_layout = QVBoxLayout()
         self.output_layout.addWidget(self.text,stretch=3)
@@ -65,11 +78,10 @@ class MainWindow(QMainWindow):
 
         self.text_layout = QHBoxLayout()
         self.text_layout.addWidget(self.nav_list, stretch = 1)
-        self.text_layout.addWidget(self.output_container, stretch = 4)
+        self.text_layout.addWidget(self.output_container, stretch = 4,)
 
         text_container = QWidget()
         text_container.setLayout(self.text_layout)
-
         self.master_layout.addWidget(text_container)
         
         button_layout = QHBoxLayout()
@@ -78,25 +90,21 @@ class MainWindow(QMainWindow):
         
         button_container = QWidget()
         button_container.setLayout(button_layout)
-        
         self.master_layout.addWidget(button_container)
 
         container = QWidget()
         container.setLayout(self.master_layout)
-
         self.setCentralWidget(container)
         self.show()
 
     def open_folder(self):
         try:
-        
             dest = QFileDialog.getExistingDirectoryUrl(self,'Open Folder')
             src = f'/home/josephm/Desktop/PyQt/directory/{dest.fileName()}'
 
             if dest.path() == '':
                 pass
             os.symlink(dest.path(), src)
-
         except FileNotFoundError:
             pass
 
@@ -104,17 +112,16 @@ class MainWindow(QMainWindow):
         if self.file_name == '':
             self.save_as()
             return
-        
         with open(self.file_name, "w") as new_file:
             new_file.write(self.text.toPlainText())
 
     def run_file(self):
         self.save_file()
-        name = self.file_name.replace(' ', '" "')
-        result = subprocess.check_output(f'python -u {name}',shell = True)
-        
-        self.terminal_output.setText(result.decode('utf-8'))
-
+        blank = subprocess.run([sys.executable,'-u',f'{self.file_name}'], check=True,capture_output=True)
+        if blank.returncode != '':
+            self.terminal_text += f"{blank.stdout.decode('utf-8')}\n{self.terminal_directory}"
+            self.terminal_output.setText(self.terminal_text)
+              
     def save_as(self):
         new_name = QFileDialog.getSaveFileName(self, 'Save file as',
         '/home/josephm/','All files (*.*)')
@@ -122,7 +129,6 @@ class MainWindow(QMainWindow):
         if new_name[0] == '':
             return
         self.file_name = new_name[0]
-
         with open(self.file_name,'w') as file:
             file.write(str(self.text.toPlainText()))
 
@@ -134,14 +140,17 @@ class MainWindow(QMainWindow):
 
             with open(self.file_name, 'r') as file:
                 self.text.setText(file.read())
-        except UnicodeDecodeError or IsADirectoryError or ValueError:
+
+        except IsADirectoryError:
+            pass
+
+        except:
             self.text.setText('Error opening file')
             pass
 
 if __name__ == '__main__':
     app =  QApplication(sys.argv)
     window = MainWindow()
-    
     app.setStyleSheet("""
     QMainWindow {
         background-color: "dark-blue";
