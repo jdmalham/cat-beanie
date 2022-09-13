@@ -15,9 +15,21 @@ import subprocess
         if QMouseEvent.button() == Qt.MouseButton.RightButton:
             self.button = 'RIGHT'"""
 
+class ErrorMessage(QMainWindow):
+    def __init__(self,parent=None):
+        super(ErrorMessage,self).__init__(parent)
+        self.label = QLabel()
+        self.setCentralWidget(self.label)
+
+    def showError(self,text):
+        self.label.setText(text)
+        self.show()
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setProperty("class", "thewindow")
         self.setWindowTitle('Cat Beanie')
         self.dir_path = os.path.dirname(os.path.abspath(__file__)) + '/directory'
         self.file_name = ''
@@ -61,7 +73,7 @@ class MainWindow(QMainWindow):
 
         os.chdir(os.path.dirname(__file__))
         self.current_directory = os.getcwd()
-        
+
         self.terminal_directory = f"[{self.current_directory}]"
         self.terminal_text = self.terminal_directory
         self.terminal_output = QTextEdit()
@@ -105,7 +117,9 @@ class MainWindow(QMainWindow):
             if dest.path() == '':
                 pass
             os.symlink(dest.path(), src)
-        except FileNotFoundError:
+        except Exception as e:
+            self.message = ErrorMessage()
+            self.message.showError(text = f'Error opening folder: {e}')
             pass
 
     def save_file(self):
@@ -116,12 +130,15 @@ class MainWindow(QMainWindow):
             new_file.write(self.text.toPlainText())
 
     def run_file(self):
+        if self.file_name == '':
+            self.text.setText('Please open a Python file before attempting to run code')
+            return
         self.save_file()
         blank = subprocess.run([sys.executable,'-u',f'{self.file_name}'], check=True,capture_output=True)
         if blank.returncode != '':
             self.terminal_text += f"{blank.stdout.decode('utf-8')}\n{self.terminal_directory}"
             self.terminal_output.setText(self.terminal_text)
-              
+
     def save_as(self):
         new_name = QFileDialog.getSaveFileName(self, 'Save file as',
         '/home/josephm/','All files (*.*)')
@@ -141,18 +158,16 @@ class MainWindow(QMainWindow):
             with open(self.file_name, 'r') as file:
                 self.text.setText(file.read())
 
-        except IsADirectoryError:
-            pass
-
-        except:
-            self.text.setText('Error opening file')
+        except Exception as e:
+            self.message = ErrorMessage()
+            self.message.showError(text = f'Error opening file: {e}')
             pass
 
 if __name__ == '__main__':
     app =  QApplication(sys.argv)
     window = MainWindow()
     app.setStyleSheet("""
-    QMainWindow {
+    .thewindow {
         background-color: "dark-blue";
         color: "white";
         border: 2px;
