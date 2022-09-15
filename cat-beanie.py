@@ -5,16 +5,6 @@ import sys
 import os
 import subprocess
 
-"""class FileView(QTreeView):
-    def __init__(self):
-        super().__init__()
-
-    def mousePressEvent(self, QMouseEvent):
-        if QMouseEvent.button() == Qt.MouseButton.LeftButton:
-            self.button = 'LEFT'
-        if QMouseEvent.button() == Qt.MouseButton.RightButton:
-            self.button = 'RIGHT'"""
-
 class ErrorMessage(QMainWindow):
     def __init__(self,parent=None):
         super(ErrorMessage,self).__init__(parent)
