@@ -4,32 +4,53 @@ from PyQt6.QtGui import *
 import sys
 import os
 import subprocess
+import json
 
 class ErrorMessage(QMainWindow):
     def __init__(self,parent=None):
         super(ErrorMessage,self).__init__(parent)
         self.label = QLabel()
         self.setCentralWidget(self.label)
-
     def showError(self,text):
         self.label.setText(text)
         self.show()
-
-
+        
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setProperty("class", "thewindow")
         self.setWindowTitle('Cat Beanie')
+        with open('config.json') as conf_file:
+            configure = conf_file.read()
+        self.config = json.loads(configure)
+        
+        if self.config["home_dir"] == '':
+            self.home_dir = os.path.expanduser('~')
+        else:
+            self.home_dir = self.config["home_dir"]
+
+        
         self.dir_path = os.path.dirname(os.path.abspath(__file__)) + '/directory'
         self.file_name = ''
         
         self.toolbar = QToolBar(movable = False)
 
+        self.open_new_file = QAction('New File',self)
+        self.open_new_file.triggered.connect(self.new_file)
+        self.toolbar.addAction(self.open_new_file)
+
+        self.toolbar.addSeparator()
+
         self.folder_open = QAction('Open Folder',self)
         self.folder_open.triggered.connect(self.open_folder)
         self.toolbar.addAction(self.folder_open)
 
+        self.toolbar.addSeparator()
+
+        self.home_change = QAction('Choose home directory',self)
+        self.home_change.triggered.connect(self.choose_dir)
+        self.toolbar.addAction(self.home_change)
+        
         self.toolbar.addSeparator()
         
         self.file_label = QLabel(f'File path: {self.file_name}')
@@ -99,10 +120,15 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
         self.show()
 
+    def new_file(self):
+        self.text.clear()
+        self.nav_list.clearSelection()
+        self.file_name == ''
+
     def open_folder(self):
         try:
             dest = QFileDialog.getExistingDirectoryUrl(self,'Open Folder')
-            src = f'/home/josephm/Desktop/PyQt/directory/{dest.fileName()}'
+            src = f'{self.dir_path}/{dest.fileName()}'
 
             if dest.path() == '':
                 pass
@@ -124,20 +150,24 @@ class MainWindow(QMainWindow):
             self.text.setText('Please open a Python file before attempting to run code')
             return
         self.save_file()
-        blank = subprocess.run([sys.executable,'-u',f'{self.file_name}'], check=True,capture_output=True)
-        if blank.returncode != '':
-            self.terminal_text += f"{blank.stdout.decode('utf-8')}\n{self.terminal_directory}"
+        process = subprocess.run([sys.executable,'-u',f'{self.file_name}'], check=True,capture_output=True)
+        if process.returncode != '':
+            self.terminal_text += f"{process.stdout.decode('utf-8')}\n{self.terminal_directory}"
             self.terminal_output.setText(self.terminal_text)
 
     def save_as(self):
         new_name = QFileDialog.getSaveFileName(self, 'Save file as',
-        '/home/josephm/','All files (*.*)')
+        self.home_dir,'All files (*.*)')
         
         if new_name[0] == '':
             return
         self.file_name = new_name[0]
         with open(self.file_name,'w') as file:
             file.write(str(self.text.toPlainText()))
+
+    def choose_dir(self):
+        new_dir = QFileDialog.getExistingDirectoryUrl(self,"Choose default directory")
+        self.home_dir = new_dir.path()
 
     def nav_item_change(self):
         try:
@@ -147,6 +177,9 @@ class MainWindow(QMainWindow):
 
             with open(self.file_name, 'r') as file:
                 self.text.setText(file.read())
+
+        except IsADirectoryError:
+            pass
 
         except Exception as e:
             self.message = ErrorMessage()
