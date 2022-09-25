@@ -16,8 +16,8 @@ class ErrorMessage(QMainWindow):
         self.show()
 
 class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,parent=None):
+        super(MainWindow,self).__init__(parent)
         os.chdir(os.path.dirname(__file__))
         self.current_directory = os.getcwd()
         self.setProperty("class", "thewindow")
@@ -111,7 +111,6 @@ class MainWindow(QMainWindow):
         container.setLayout(self.master_layout)
         self.setCentralWidget(container)
         self.show()
-
     def new_file(self):
         self.nav_list.clearSelection()
         self.text.clear()
@@ -135,14 +134,17 @@ class MainWindow(QMainWindow):
             new_file.write(self.text.toPlainText())
     def run_file(self):
             self.save_file()
-            process = subprocess.run([sys.executable,'-u',f'{self.file_name}'], check=True,capture_output=True)
-            if process.returncode != '':
-                self.terminal_text += f"{process.stdout.decode('utf-8')}\n{self.terminal_directory}"
+            # TODO: replace with subprocess.popen this will allow it to run independently
+            # in order to get the shit to work with popen i need to separate the terminal output 
+            # update from the process call. i think
+            process = subprocess.Popen([sys.executable,'-u',f'{self.file_name}'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            process_end = process.communicate()
+            if process_end[0] != '':
+                self.terminal_text += f"{process_end[0].decode('utf-8')}\n{self.terminal_directory}"
                 self.terminal_output.setText(self.terminal_text)
     def save_as(self):
         new_name = QFileDialog.getSaveFileName(self, 'Save file as',
         self.home_dir,'All files (*.*)')
-        
         if new_name[0] == '':
             return
         self.file_name = new_name[0]
@@ -151,7 +153,12 @@ class MainWindow(QMainWindow):
     def choose_dir(self):
         new_dir = QFileDialog.getExistingDirectoryUrl(self,"Choose default directory")
         self.home_dir = new_dir.path()
-        self.config["home_dir"] = self.home_dir
+        self.config["home_dir"] = new_dir.path()
+        with open('config.json','w') as JSONfile:
+            json.dump(self.config, JSONfile)
+    def get_file_type(self):
+        split_path = os.path.splitext(self.file_name)
+        print(split_path[-1])
     def nav_item_change(self):
         try:
             file_info = self.nav_list.model().fileInfo(self.nav_list.selectedIndexes()[0])
@@ -165,7 +172,6 @@ class MainWindow(QMainWindow):
             self.message = ErrorMessage()
             self.message.showError(text = f'Error opening file: {e}')
             pass
-
 if __name__ == '__main__':
     app =  QApplication(sys.argv)
     window = MainWindow()
