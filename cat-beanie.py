@@ -1,19 +1,31 @@
+"""Some overall thoughts I have been having regarding how to improve this application.
+0) MAKE IT COMPATIBLE WITH WINDOWS I HATE THAT ITS NOT COMPATIBLE WITH WINDOWS SO FUCKING MUCH BUT I DON'T WANT TO REMOVE 
+LINUX AND MAC COMPATIBILITY ### I think I might have fixed this
+1) I should try slimming down __init__ if at all possible
+2) I feel like creating  a few classes that handle the actual functionality will help; separate function classes from UI classes"""
+
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
 import sys
 import os
+import numpy
+import _winapi
 import subprocess
 import json
+import multiprocessing as mp
 
-class ErrorMessage(QMainWindow):
+class ErrorMessage(QMessageBox):
     def __init__(self,parent=None):
         super(ErrorMessage,self).__init__(parent)
-        self.label = QLabel()
-        self.setCentralWidget(self.label)
     def showError(self,text):
-        self.label.setText(text)
+        self.setText(text)
         self.show()
+
+"""class TerminalWidget(QText):
+    def __init__(self,parent):
+        super().__init__()
+        self.terminal_output = """
 
 class MainWindow(QMainWindow):
     def __init__(self,parent=None):
@@ -31,7 +43,7 @@ class MainWindow(QMainWindow):
         else:
             self.home_dir = os.path.expanduser('~')
 
-        self.dir_path = os.path.dirname(os.path.abspath(__file__)) + '/directory'
+        self.dir_path = os.path.dirname(os.path.abspath(__file__)) + '\directory'
         self.file_name = ''
         
         self.toolbar = QToolBar(movable = False)
@@ -117,11 +129,17 @@ class MainWindow(QMainWindow):
         self.file_name == ''
     def open_folder(self):
         try:
-            dest = QFileDialog.getExistingDirectoryUrl(self,'Open Folder')
-            src = f'{self.dir_path}/{dest.fileName()}'
-            if dest.path() == '':
+            dest = QFileDialog.getExistingDirectory(self,'Open Folder')
+            dest_name = dest.split('/')
+            src = f'{self.dir_path}/{dest_name[-1]}'
+            if dest == '':
                 pass
-            os.symlink(dest.path(), src)
+            os.symlink(dest, src)
+        except WindowsError:
+            the_dest = os.path.normpath(dest)
+            the_src = os.path.normpath(os.path.realpath(f'{self.dir_path}\{dest_name[-1]}'))
+            _winapi.CreateJunction(the_dest,the_src)
+            pass
         except Exception as e:
             self.message = ErrorMessage()
             self.message.showError(text = f'Error opening folder: {e}')
@@ -133,15 +151,18 @@ class MainWindow(QMainWindow):
         with open(self.file_name, "w") as new_file:
             new_file.write(self.text.toPlainText())
     def run_file(self):
-            self.save_file()
-            # TODO: replace with subprocess.popen this will allow it to run independently
-            # in order to get the shit to work with popen i need to separate the terminal output 
-            # update from the process call. i think
-            process = subprocess.Popen([sys.executable,'-u',f'{self.file_name}'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-            process_end = process.communicate()
-            if process_end[0] != '':
-                self.terminal_text += f"{process_end[0].decode('utf-8')}\n{self.terminal_directory}"
-                self.terminal_output.setText(self.terminal_text)
+        self.save_file()
+        """ TODO: figure out how to get this to run as a parallel task. I might just want to create a custom widget that 
+        handles the terminal output and inherits the file_name property of the main window so that it knows which to run
+        OR i define the widget class s.t. you pass file_name as an argument. The argument approach is definitely better
+        now that I think about it but i will keep the comments just in case it ends up being useful for me later"""
+
+        process = subprocess.Popen([sys.executable,'-u',f'{self.file_name}'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        process_end = process.communicate()
+        #self.get_file_type()
+        if process_end[0] != '':
+            self.terminal_text += f"{process_end[0].decode('utf-8')}\n{self.terminal_directory}"
+            self.terminal_output.setText(self.terminal_text)
     def save_as(self):
         new_name = QFileDialog.getSaveFileName(self, 'Save file as',
         self.home_dir,'All files (*.*)')
@@ -156,9 +177,10 @@ class MainWindow(QMainWindow):
         self.config["home_dir"] = new_dir.path()
         with open('config.json','w') as JSONfile:
             json.dump(self.config, JSONfile)
-    def get_file_type(self):
+    """def get_file_type(self):
+        #This is a function that I will use to get file type when I actually get around to multi language support
         split_path = os.path.splitext(self.file_name)
-        print(split_path[-1])
+        print(split_path[-1])"""
     def nav_item_change(self):
         try:
             file_info = self.nav_list.model().fileInfo(self.nav_list.selectedIndexes()[0])
@@ -174,18 +196,22 @@ class MainWindow(QMainWindow):
             pass
 if __name__ == '__main__':
     app =  QApplication(sys.argv)
+    #mp.set_start_method('spawn')
     window = MainWindow()
     app.setStyleSheet("""
     .thewindow {
-        background-color: "dark-blue";
+        background-color: "navy";
         color: "white";
         border: 2px;
         border-color: "dark-grey";
     }
     QPushButton {
         font-size: 16px;
-        background-color: "navy";
+        background-color: "blue";
         color: "white";
+    }
+    QToolBar{
+        background-color: "white";
     }
     QTreeView {
         background-color: "grey";
